@@ -18,8 +18,10 @@
 import csv
 import json
 import os
+from loguru import logger
 
 import datasets
+from datasets.tasks import TextClassification
 
 
 # TODO: Add BibTeX citation
@@ -36,7 +38,7 @@ year={2020}
 # TODO: Add description of the dataset here
 # You can copy an official description
 _DESCRIPTION = """\
-Reviews dataset
+This new dataset is designed to solve this great NLP task and is crafted with a lot of care.
 """
 
 # TODO: Add a link to an official homepage for the dataset here
@@ -49,16 +51,18 @@ _LICENSE = ""
 # The HuggingFace Datasets library doesn't host the datasets but only points to the original files.
 # This can be an arbitrary nested dict/list of URLs (see below in `_split_generators` method)
 # _URLS = {
-#     # "first_domain": "https://huggingface.co/great-new-dataset-first_domain.zip",
-#     # "second_domain": "https://huggingface.co/great-new-dataset-second_domain.zip",
+#     "first_domain": "https://huggingface.co/great-new-dataset-first_domain.zip",
 # }
-
-
-DATA_DIR = '/data/home/justincho/Data2Vec_lightning/datasets/datasets/dapt_data/reviews/'
+_URL = "https://s3-us-west-2.amazonaws.com/allennlp/dont_stop_pretraining/data/ag/"
+_URLS = {
+    "train": os.path.join(_URL, "train.jsonl"),
+    "validation": os.path.join(_URL, "dev.jsonl"),
+    "test": os.path.join(_URL, "test.jsonl")
+}
 
 
 # TODO: Name of the dataset usually match the script name with CamelCase instead of snake_case
-class ReviewsDAPTDataset(datasets.GeneratorBasedBuilder):
+class AGDataset(datasets.GeneratorBasedBuilder):
     """TODO: Short description of my dataset."""
 
     VERSION = datasets.Version("1.1.0")
@@ -74,24 +78,19 @@ class ReviewsDAPTDataset(datasets.GeneratorBasedBuilder):
     # You will be able to load one or the other configurations in the following list with
     # data = datasets.load_dataset('my_dataset', 'first_domain')
     # data = datasets.load_dataset('my_dataset', 'second_domain')
-    # BUILDER_CONFIGS = [
-    #     datasets.BuilderConfig(name="first_domain", version=VERSION, description="This part of my dataset covers a first domain"),
-    #     datasets.BuilderConfig(name="second_domain", version=VERSION, description="This part of my dataset covers a second domain"),
-    # ]
-
     BUILDER_CONFIGS = [
         datasets.BuilderConfig(name="first_domain", version=VERSION, description="This part of my dataset covers a first domain")
-        # datasets.BuilderConfig(name="second_domain", version=VERSION, description="This part of my dataset covers a second domain"),
     ]
-    DEFAULT_CONFIG_NAME = "first_domain"
+
+    DEFAULT_CONFIG_NAME = "first_domain"  # It's not mandatory to have a default configuration. Just use one if it make sense.
 
     def _info(self):
 
         features = datasets.Features(
             {
+                "text": datasets.Value("string"),
                 "id": datasets.Value("string"),
-                "reviewerID": datasets.Value("string"),
-                "reviewText": datasets.Value("string"),
+                "label": datasets.features.ClassLabel(names=["World", "Sports", "Business", "Sci/Tech"])
             }
         )
 
@@ -109,6 +108,8 @@ class ReviewsDAPTDataset(datasets.GeneratorBasedBuilder):
             license=_LICENSE,
             # Citation for the dataset
             citation=_CITATION,
+            task_templates=[TextClassification(text_column="text", label_column="label")],
+
         )
 
     def _split_generators(self, dl_manager):
@@ -118,38 +119,59 @@ class ReviewsDAPTDataset(datasets.GeneratorBasedBuilder):
         # dl_manager is a datasets.download.DownloadManager that can be used to download and extract URLS
         # It can accept any type or nested list/dict and will give back the same structure with the url replaced with path to local files.
         # By default the archives will be extracted and a path to a cached folder where they are extracted is returned instead of the archive
-        # urls = _URLS[self.config.name]
-        # data_dir = dl_manager.download_and_extract(urls)
-        data_dir = DATA_DIR
+
+        train_path = dl_manager.download_and_extract(_URLS["train"])
+        test_path = dl_manager.download_and_extract(_URLS["test"])
+        valid_path = dl_manager.download_and_extract(_URLS["validation"])
+
         return [
             datasets.SplitGenerator(
                 name=datasets.Split.TRAIN,
                 # These kwargs will be passed to _generate_examples
                 gen_kwargs={
-                    "filepath": os.path.join(data_dir, "reviews.jsonl"),
-                    # "filepath": os.path.join(data_dir, "reviews_sample.jsonl"),
-                    "split": "train"
-                }
+                    "filepath": train_path,
+                    "split": "train",
+                },
+            ),
+            datasets.SplitGenerator(
+                name=datasets.Split.TEST,
+                # These kwargs will be passed to _generate_examples
+                gen_kwargs={
+                    "filepath": test_path,
+                    "split": "test"
+                },
             ),
             datasets.SplitGenerator(
                 name=datasets.Split.VALIDATION,
                 # These kwargs will be passed to _generate_examples
                 gen_kwargs={
-                    "filepath": os.path.join(data_dir, "reviews_sample.jsonl"),
-                    "split": "dev"
-                }
-            )
+                    "filepath": valid_path,
+                    "split": "dev",
+                },
+            ),
         ]
 
     # method parameters are unpacked from `gen_kwargs` as given in `_split_generators`
     def _generate_examples(self, filepath, split):
-        # TODO: This method handles input defined in _split_generators to yield (key, example) tuples from the dataset.
-        # The `key` is for legacy reasons (tfds) and is not important in itself, but must be unique for each example.
+        """Generate AG News examples."""
+
         with open(filepath, encoding="utf-8") as f:
-            for id_, row in enumerate(f):
+            for key, row in enumerate(f):
                 data = json.loads(row)
-                yield id_, {
-                    "reviewText": data["reviewText"],
-                    "reviewerID": data["reviewerID"],
-                    "id": id_
-                }
+                # Original labels are [1, 2, 3, 4] ->
+                #                   ['World', 'Sports', 'Business', 'Sci/Tech']
+                # Re-map to [0, 1, 2, 3].
+                headline =data.get("headline", "")
+                text = data["text"]
+                if headline: 
+                    text = f"{headline} {text}"
+                try: 
+                    yield key, {
+                        "text": text.strip(),
+                        "label": int(data["label"])-1, 
+                        "id": key
+                    }
+                except Exception as e: 
+                    logger.info(f"Something is wrong with: {data}. Make sure all key values are present.")
+                    import pdb; pdb.set_trace()
+                    logger.info(e)
