@@ -28,7 +28,7 @@ from .load import (
     metric_module_factory,
 )
 from .utils import DownloadConfig
-from .utils.download_manager import GenerateMode
+from .utils.download_manager import DownloadMode
 from .utils.logging import get_logger
 from .utils.streaming_download_manager import StreamingDownloadManager
 from .utils.version import Version
@@ -45,8 +45,8 @@ def list_datasets(with_community_datasets=True, with_details=False):
     """List all the datasets scripts available on the Hugging Face Hub.
 
     Args:
-        with_community_datasets (``bool``, optional, default ``True``): Include the community provided datasets.
-        with_details (``bool``, optional, default ``False``): Return the full details on the datasets instead of only the short name.
+        with_community_datasets (:obj:`bool`, optional, default ``True``): Include the community provided datasets.
+        with_details (:obj:`bool`, optional, default ``False``): Return the full details on the datasets instead of only the short name.
     """
     datasets = huggingface_hub.list_datasets(full=with_details)
     if not with_community_datasets:
@@ -60,8 +60,8 @@ def list_metrics(with_community_metrics=True, with_details=False):
     """List all the metrics script available on the Hugging Face Hub.
 
     Args:
-        with_community_metrics (Optional ``bool``, default ``True``): Include the community provided metrics.
-        with_details (Optional ``bool``, default ``False``): Return the full details on the metrics instead of only the short name.
+        with_community_metrics (:obj:`bool`, optional, default ``True``): Include the community provided metrics.
+        with_details (:obj:`bool`, optional, default ``False``): Return the full details on the metrics instead of only the short name.
     """
     metrics = huggingface_hub.list_metrics()
     if not with_community_metrics:
@@ -125,7 +125,7 @@ def get_dataset_infos(
     path: str,
     data_files: Optional[Union[Dict, List, str]] = None,
     download_config: Optional[DownloadConfig] = None,
-    download_mode: Optional[GenerateMode] = None,
+    download_mode: Optional[DownloadMode] = None,
     revision: Optional[Union[str, Version]] = None,
     use_auth_token: Optional[Union[bool, str]] = None,
     **config_kwargs,
@@ -146,9 +146,9 @@ def get_dataset_infos(
             - it will also try to load it from the master branch if it's not available at the local version of the lib.
             Specifying a version that is different from your local version of the lib might cause compatibility issues.
         download_config (:class:`DownloadConfig`, optional): Specific download configuration parameters.
-        download_mode (:class:`GenerateMode`, default ``REUSE_DATASET_IF_EXISTS``): Download/generate mode.
+        download_mode (:class:`DownloadMode`, default ``REUSE_DATASET_IF_EXISTS``): Download/generate mode.
         data_files (:obj:`Union[Dict, List, str]`, optional): Defining the data_files of the dataset configuration.
-        use_auth_token (``str`` or ``bool``, optional): Optional string or boolean to use as Bearer token for remote files on the Datasets Hub.
+        use_auth_token (``str`` or :obj:`bool`, optional): Optional string or boolean to use as Bearer token for remote files on the Datasets Hub.
             If True, will get token from `"~/.huggingface"`.
         config_kwargs: optional attributes for builder class which will override the attributes if supplied.
     """
@@ -178,7 +178,7 @@ def get_dataset_config_names(
     path: str,
     revision: Optional[Union[str, Version]] = None,
     download_config: Optional[DownloadConfig] = None,
-    download_mode: Optional[GenerateMode] = None,
+    download_mode: Optional[DownloadMode] = None,
     force_local_path: Optional[str] = None,
     dynamic_modules_path: Optional[str] = None,
     data_files: Optional[Union[Dict, List, str]] = None,
@@ -200,7 +200,7 @@ def get_dataset_config_names(
             - it will also try to load it from the master branch if it's not available at the local version of the lib.
             Specifying a version that is different from your local version of the lib might cause compatibility issues.
         download_config (:class:`DownloadConfig`, optional): Specific download configuration parameters.
-        download_mode (:class:`GenerateMode`, default ``REUSE_DATASET_IF_EXISTS``): Download/generate mode.
+        download_mode (:class:`DownloadMode`, default ``REUSE_DATASET_IF_EXISTS``): Download/generate mode.
         force_local_path (Optional str): Optional path to a local path to download and prepare the script to.
             Used to inspect or modify the script folder.
         dynamic_modules_path (Optional str, defaults to HF_MODULES_CACHE / "datasets_modules", i.e. ~/.cache/huggingface/modules/datasets_modules):
@@ -229,7 +229,7 @@ def get_dataset_config_info(
     config_name: Optional[str] = None,
     data_files: Optional[Union[str, Sequence[str], Mapping[str, Union[str, Sequence[str]]]]] = None,
     download_config: Optional[DownloadConfig] = None,
-    download_mode: Optional[GenerateMode] = None,
+    download_mode: Optional[DownloadMode] = None,
     revision: Optional[Union[str, Version]] = None,
     use_auth_token: Optional[Union[bool, str]] = None,
     **config_kwargs,
@@ -246,14 +246,14 @@ def get_dataset_config_info(
         config_name (:obj:`str`, optional): Defining the name of the dataset configuration.
         data_files (:obj:`str` or :obj:`Sequence` or :obj:`Mapping`, optional): Path(s) to source data file(s).
         download_config (:class:`~utils.DownloadConfig`, optional): Specific download configuration parameters.
-        download_mode (:class:`GenerateMode`, default ``REUSE_DATASET_IF_EXISTS``): Download/generate mode.
+        download_mode (:class:`DownloadMode`, default ``REUSE_DATASET_IF_EXISTS``): Download/generate mode.
         revision (:class:`~utils.Version` or :obj:`str`, optional): Version of the dataset script to load:
 
-            - For canonical datasets in the `huggingface/datasets` library like "squad", the default version of the module is the local version of the lib.
+            - For datasets in the `huggingface/datasets` library on GitHub like "squad", the default version of the module is the local version of the lib.
               You can specify a different version from your local version of the lib (e.g. "master" or "1.2.0") but it might cause compatibility issues.
-            - For community provided datasets like "lhoestq/squad" that have their own git repository on the Datasets Hub, the default version "main" corresponds to the "main" branch.
+            - For community datasets like "lhoestq/squad" that have their own git repository on the Datasets Hub, the default version "main" corresponds to the "main" branch.
               You can specify a different version that the default "main" by using a commit sha or a git tag of the dataset repository.
-        use_auth_token (``str`` or ``bool``, optional): Optional string or boolean to use as Bearer token for remote files on the Datasets Hub.
+        use_auth_token (``str`` or :obj:`bool`, optional): Optional string or boolean to use as Bearer token for remote files on the Datasets Hub.
             If True, will get token from `"~/.huggingface"`.
         config_kwargs: optional attributes for builder class which will override the attributes if supplied.
 
@@ -291,7 +291,7 @@ def get_dataset_split_names(
     config_name: Optional[str] = None,
     data_files: Optional[Union[str, Sequence[str], Mapping[str, Union[str, Sequence[str]]]]] = None,
     download_config: Optional[DownloadConfig] = None,
-    download_mode: Optional[GenerateMode] = None,
+    download_mode: Optional[DownloadMode] = None,
     revision: Optional[Union[str, Version]] = None,
     use_auth_token: Optional[Union[bool, str]] = None,
     **config_kwargs,
@@ -308,21 +308,21 @@ def get_dataset_split_names(
         config_name (:obj:`str`, optional): Defining the name of the dataset configuration.
         data_files (:obj:`str` or :obj:`Sequence` or :obj:`Mapping`, optional): Path(s) to source data file(s).
         download_config (:class:`~utils.DownloadConfig`, optional): Specific download configuration parameters.
-        download_mode (:class:`GenerateMode`, default ``REUSE_DATASET_IF_EXISTS``): Download/generate mode.
+        download_mode (:class:`DownloadMode`, default ``REUSE_DATASET_IF_EXISTS``): Download/generate mode.
         revision (:class:`~utils.Version` or :obj:`str`, optional): Version of the dataset script to load:
 
-            - For canonical datasets in the `huggingface/datasets` library like "squad", the default version of the module is the local version of the lib.
+            - For datasets in the `huggingface/datasets` library on GitHub like "squad", the default version of the module is the local version of the lib.
               You can specify a different version from your local version of the lib (e.g. "master" or "1.2.0") but it might cause compatibility issues.
-            - For community provided datasets like "lhoestq/squad" that have their own git repository on the Datasets Hub, the default version "main" corresponds to the "main" branch.
+            - For community datasets like "lhoestq/squad" that have their own git repository on the Datasets Hub, the default version "main" corresponds to the "main" branch.
               You can specify a different version that the default "main" by using a commit sha or a git tag of the dataset repository.
-        use_auth_token (``str`` or ``bool``, optional): Optional string or boolean to use as Bearer token for remote files on the Datasets Hub.
+        use_auth_token (``str`` or :obj:`bool`, optional): Optional string or boolean to use as Bearer token for remote files on the Datasets Hub.
             If True, will get token from `"~/.huggingface"`.
         config_kwargs: optional attributes for builder class which will override the attributes if supplied.
 
     """
     info = get_dataset_config_info(
         path,
-        name=config_name,
+        config_name=config_name,
         data_files=data_files,
         download_config=download_config,
         download_mode=download_mode,
