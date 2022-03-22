@@ -53,7 +53,7 @@ _LICENSE = ""
 #     # "second_domain": "https://huggingface.co/great-new-dataset-second_domain.zip",
 # }
 
-DATA_DIR = "/project/jonmay_231/hjcho/Data2Vec_lightning/datasets/datasets/dapt_data/realnews/"
+DATA_DIR = "/data/home/justincho/Data2Vec_lightning/datasets/datasets/realnews/"
 
 
 # TODO: Name of the dataset usually match the script name with CamelCase instead of snake_case
@@ -79,8 +79,8 @@ class RealNews(datasets.GeneratorBasedBuilder):
     # ]
 
     BUILDER_CONFIGS = [
-        datasets.BuilderConfig(name="first_domain", version=VERSION, description="This part of my dataset covers a first domain")
-        # datasets.BuilderConfig(name="second_domain", version=VERSION, description="This part of my dataset covers a second domain"),
+        datasets.BuilderConfig(name="first_domain", version=VERSION, description="This part of my dataset covers a first domain"),
+        datasets.BuilderConfig(name="second_domain", version=VERSION, description="This part of my dataset covers a second domain")
     ]
     DEFAULT_CONFIG_NAME = "first_domain"
 
@@ -125,8 +125,20 @@ class RealNews(datasets.GeneratorBasedBuilder):
                 name=datasets.Split.TRAIN,
                 # These kwargs will be passed to _generate_examples
                 gen_kwargs={
-                    "filepath": os.path.join(data_dir, "realnews.jsonl"),
+                    # "filepath": os.path.join(data_dir, "realnews.jsonl"),
+                    # "filepath": os.path.join(data_dir, "realnews_sample.jsonl"),
+                    "filepath": os.path.join(data_dir, "realnews_dapt.jsonl"),
                     "split": "train",
+                }
+            ),
+            datasets.SplitGenerator(
+                name=datasets.Split.VALIDATION,
+                # These kwargs will be passed to _generate_examples
+                gen_kwargs={
+                    # "filepath": os.path.join(data_dir, "realnews.jsonl"),
+                    "filepath": os.path.join(data_dir, "realnews_sample.jsonl"),
+                    # "filepath": os.path.join(data_dir, "realnews_dapt.jsonl"),
+                    "split": "dev",
                 }
             )
         ]

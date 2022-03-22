@@ -47,7 +47,8 @@ splits = ["train", "dev", "test"]
 for dataset_name, dataset_configs in DATASETS.items(): 
     for split in splits: 
         fp = os.path.join(dataset_configs["data_dir"], f"{split}.jsonl")
-        os.makedirs(dataset_name, exist_ok=True)
-        cmd = f"curl -Lo {os.path.join(dataset_name, f'{split}.jsonl')} {fp}"
+        dataset_path = f"tapt_tasks/{dataset_name}"
+        os.makedirs(dataset_path, exist_ok=True)
+        cmd = f"curl -Lo {os.path.join(dataset_path, f'{split}.jsonl')} {fp}"
         print(cmd)
         run(shlex.split(cmd))
