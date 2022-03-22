@@ -43,11 +43,17 @@ _LICENSE = "cc-by-4.0"
 
 _URL = "https://drive.google.com/u/0/uc?id={0}&export=download"
 
+DATASETS_DIR = os.environ.get("DATASETS_DIR", None)
+if not DATASETS_DIR: 
+    print("Set DATASETS_DIR environment variable to point to Hugging Face Datasets directory.")
+    raise EnvironmentError
+
 _FILEPATHS = {
     "generics_kb_best": _URL.format("12DfIzoWyHIQqssgUgDvz3VG8_ScSh6ng"),
     "generics_kb": _URL.format("1UOIEzQTid7SzKx2tbwSSPxl7g-CjpoZa"),
     "generics_kb_simplewiki": _URL.format("1SpN9Qc7XRy5xs4tIfXkcLOEAP2IVaK15"),
     "generics_kb_waterloo": "cskb-waterloo-06-21-with-bert-scores.jsonl",
+    "generics_kb_ours": os.path.join(DATASETS_DIR, "datasets/generics_kb/genericskb-raw.txt") 
 }
 
 
@@ -63,6 +69,11 @@ class GenericsKb(datasets.GeneratorBasedBuilder):
             description="This is the default and recommended config.Comprises of GENERICSKB generics with a score > 0.234 ",
         ),
         datasets.BuilderConfig(
+            name="generics_kb_ours",
+            version=VERSION,
+            description="a small subset of the generics_kb dataset. 200k sentences.",
+        ),
+        datasets.BuilderConfig(
             name="generics_kb", version=VERSION, description="This GENERICSKB that contains 3,433,000 sentences."
         ),
         datasets.BuilderConfig(
@@ -70,31 +81,31 @@ class GenericsKb(datasets.GeneratorBasedBuilder):
             version=VERSION,
             description="SimpleWikipedia is a filtered scrape of SimpleWikipedia pages (simple.wikipedia.org)",
         ),
-        datasets.BuilderConfig(
-            name="generics_kb_waterloo",
-            version=VERSION,
-            description="The Waterloo corpus is 280GB of English plain text, gathered by Charles Clarke (Univ. Waterloo) using a webcrawler in 2001 from .edu domains.",
-        ),
+        # datasets.BuilderConfig(
+        #     name="generics_kb_waterloo",
+        #     version=VERSION,
+        #     description="The Waterloo corpus is 280GB of English plain text, gathered by Charles Clarke (Univ. Waterloo) using a webcrawler in 2001 from .edu domains.",
+        # ),
     ]
 
-    @property
-    def manual_download_instructions(self):
-        return """\
-      You need to manually download the files needed for the dataset config generics_kb_waterloo. The other configs like generics_kb_best don't need manual downloads.
-      The <path/to/folder> can e.g. be `~/Downloads/GenericsKB`. Download the following required files from https://drive.google.com/drive/folders/1vqfVXhJXJWuiiXbUa4rZjOgQoJvwZUoT
-      For working on "generics_kb_waterloo" data,
-        1. Manually download 'GenericsKB-Waterloo-WithContext.jsonl.zip' into your <path/to/folder>.Please ensure the filename is as is.
-           The Waterloo is also generics from GenericsKB.tsv, but expanded to also include their surrounding context (before/after sentences). The Waterloo generics are the majority of GenericsKB. This zip file is 1.4GB expanding to 5.5GB.
-        2. Extract the GenericsKB-Waterloo-WithContext.jsonl.zip; It will create a file of 5.5 GB called cskb-waterloo-06-21-with-bert-scores.jsonl.
-           Ensure you move this file into your <path/to/folder>.
+    # @property
+    # def manual_download_instructions(self):
+    #     return """\
+    #   You need to manually download the files needed for the dataset config generics_kb_waterloo. The other configs like generics_kb_best don't need manual downloads.
+    #   The <path/to/folder> can e.g. be `~/Downloads/GenericsKB`. Download the following required files from https://drive.google.com/drive/folders/1vqfVXhJXJWuiiXbUa4rZjOgQoJvwZUoT
+    #   For working on "generics_kb_waterloo" data,
+    #     1. Manually download 'GenericsKB-Waterloo-WithContext.jsonl.zip' into your <path/to/folder>.Please ensure the filename is as is.
+    #        The Waterloo is also generics from GenericsKB.tsv, but expanded to also include their surrounding context (before/after sentences). The Waterloo generics are the majority of GenericsKB. This zip file is 1.4GB expanding to 5.5GB.
+    #     2. Extract the GenericsKB-Waterloo-WithContext.jsonl.zip; It will create a file of 5.5 GB called cskb-waterloo-06-21-with-bert-scores.jsonl.
+    #        Ensure you move this file into your <path/to/folder>.
 
-      generics_kb can then be loaded using the following commands based on which data you want to work on. Data files must be present in the <path/to/folder> if using "generics_kb_waterloo" config.
-      1. `datasets.load_dataset("generics_kb","generics_kb_best")`.
-      2. `datasets.load_dataset("generics_kb","generics_kb")`
-      3. `datasets.load_dataset("generics_kb","generics_kb_simplewiki")`
-      4. `datasets.load_dataset("generics_kb","generics_kb_waterloo", data_dir="<path/to/folder>")`
+    #   generics_kb can then be loaded using the following commands based on which data you want to work on. Data files must be present in the <path/to/folder> if using "generics_kb_waterloo" config.
+    #   1. `datasets.load_dataset("generics_kb","generics_kb_best")`.
+    #   2. `datasets.load_dataset("generics_kb","generics_kb")`
+    #   3. `datasets.load_dataset("generics_kb","generics_kb_simplewiki")`
+    #   4. `datasets.load_dataset("generics_kb","generics_kb_waterloo", data_dir="<path/to/folder>")`
 
-      """
+    #   """
 
     DEFAULT_CONFIG_NAME = "generics_kb_best"
 
@@ -117,6 +128,12 @@ class GenericsKb(datasets.GeneratorBasedBuilder):
 
             features = datasets.Features(featuredict)
 
+        elif self.config.name =="generics_kb_ours": 
+            featuredict = {
+                "id": datasets.Value("string"), 
+                "text": datasets.Value("string"), 
+            }
+            features = datasets.Features(featuredict)
         else:
 
             features = datasets.Features(
@@ -164,6 +181,9 @@ class GenericsKb(datasets.GeneratorBasedBuilder):
                 raise FileNotFoundError(
                     f"{filepath} does not exist. Make sure you required files are present in {data_dir} `. Manual download instructions: {self.manual_download_instructions})"
                 )
+
+        elif self.config.name == "generics_kb_ours": 
+            filepath = _FILEPATHS[self.config.name] 
         else:
             filepath = dl_manager.download(_FILEPATHS[self.config.name])
 
@@ -201,6 +221,17 @@ class GenericsKb(datasets.GeneratorBasedBuilder):
                         result["categories"] = data["knowledge"]["context"]["categories"]
 
                     yield id_, result
+
+        elif self.config.name == "generics_kb_ours": 
+
+            with open(filepath, "r") as f: 
+                for id_, row in enumerate(f): 
+                    result = {
+                        "text": row.replace("\n", ""), 
+                        "id": id_
+                    }
+                    yield id_, result 
+
         else:
 
             with open(filepath, encoding="utf-8") as f:

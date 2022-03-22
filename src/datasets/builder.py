@@ -345,6 +345,8 @@ class DatasetBuilder:
         # try get config by name
         if isinstance(name, str):
             builder_config = self.builder_configs.get(name)
+            # print("HI")
+            # import pdb; pdb.set_trace() 
             if builder_config is None and self.BUILDER_CONFIGS:
                 raise ValueError(f"BuilderConfig {name} not found. Available: {list(self.builder_configs.keys())}")
 

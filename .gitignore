@@ -65,3 +65,5 @@ report.md
 
 *.jsonl
 *.json
+*.txt
+*.gz
