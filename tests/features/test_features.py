@@ -8,11 +8,8 @@ import pyarrow as pa
 import pytest
 
 from datasets.arrow_dataset import Dataset
-from datasets.features import (
-    ClassLabel,
-    Features,
-    Sequence,
-    Value,
+from datasets.features import ClassLabel, Features, Sequence, Value
+from datasets.features.features import (
     _arrow_to_datasets_dtype,
     _cast_to_python_objects,
     cast_to_python_objects,
@@ -227,6 +224,13 @@ class FeaturesTest(TestCase):
         _features = features.copy()
         flattened_features = features.flatten()
         assert flattened_features == {"foo.bar1": Value("int32"), "foo.bar2.foobar": Value("string")}
+        assert features == _features, "calling flatten shouldn't alter the current features"
+
+    def test_flatten_with_sequence(self):
+        features = Features({"foo": Sequence({"bar": {"my_value": Value("int32")}})})
+        _features = features.copy()
+        flattened_features = features.flatten()
+        assert flattened_features == {"foo.bar": [{"my_value": Value("int32")}]}
         assert features == _features, "calling flatten shouldn't alter the current features"
 
 

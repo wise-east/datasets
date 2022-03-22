@@ -33,14 +33,15 @@ import pyarrow.types
 from pandas.api.extensions import ExtensionArray as PandasExtensionArray
 from pandas.api.extensions import ExtensionDtype as PandasExtensionDtype
 
-from datasets import config, utils
-from datasets.features.audio import Audio
-from datasets.features.image import Image, encode_pil_image
-from datasets.features.translation import Translation, TranslationVariableLanguages
-from datasets.utils.logging import get_logger
+from .. import config
+from ..utils import logging
+from ..utils.py_utils import zip_dict
+from .audio import Audio
+from .image import Image, encode_pil_image
+from .translation import Translation, TranslationVariableLanguages
 
 
-logger = get_logger(__name__)
+logger = logging.get_logger(__name__)
 
 
 def _arrow_to_datasets_dtype(arrow_type: pa.DataType) -> str:
@@ -969,9 +970,7 @@ def encode_nested_example(schema, obj):
     """
     # Nested structures: we allow dict, list/tuples, sequences
     if isinstance(schema, dict):
-        return {
-            k: encode_nested_example(sub_schema, sub_obj) for k, (sub_schema, sub_obj) in utils.zip_dict(schema, obj)
-        }
+        return {k: encode_nested_example(sub_schema, sub_obj) for k, (sub_schema, sub_obj) in zip_dict(schema, obj)}
     elif isinstance(schema, (list, tuple)):
         sub_schema = schema[0]
         if obj is None:
@@ -991,12 +990,12 @@ def encode_nested_example(schema, obj):
             list_dict = {}
             if isinstance(obj, (list, tuple)):
                 # obj is a list of dict
-                for k, dict_tuples in utils.zip_dict(schema.feature, *obj):
+                for k, dict_tuples in zip_dict(schema.feature, *obj):
                     list_dict[k] = [encode_nested_example(dict_tuples[0], o) for o in dict_tuples[1:]]
                 return list_dict
             else:
                 # obj is a single dict
-                for k, (sub_schema, sub_objs) in utils.zip_dict(schema.feature, obj):
+                for k, (sub_schema, sub_objs) in zip_dict(schema.feature, obj):
                     list_dict[k] = [encode_nested_example(sub_schema, o) for o in sub_objs]
                 return list_dict
         # schema.feature is not a dict
@@ -1030,9 +1029,7 @@ def decode_nested_example(schema, obj):
     """
     # Nested structures: we allow dict, list/tuples, sequences
     if isinstance(schema, dict):
-        return {
-            k: decode_nested_example(sub_schema, sub_obj) for k, (sub_schema, sub_obj) in utils.zip_dict(schema, obj)
-        }
+        return {k: decode_nested_example(sub_schema, sub_obj) for k, (sub_schema, sub_obj) in zip_dict(schema, obj)}
     elif isinstance(schema, (list, tuple)):
         sub_schema = schema[0]
         if obj is None:
@@ -1210,6 +1207,20 @@ class Features(dict):
         super().__setitem__(column_name, feature)
         self._column_requires_decoding[column_name] = require_decoding(feature)
 
+    def __delitem__(self, column_name: str):
+        super().__delitem__(column_name)
+        del self._column_requires_decoding[column_name]
+
+    def update(self, iterable, **kwds):
+        if hasattr(iterable, "keys"):
+            for key in iterable.keys():
+                self[key] = iterable[key]
+        else:
+            for key, value in iterable:
+                self[key] = value
+        for key in kwds:
+            self[key] = kwds[key]
+
     def __reduce__(self):
         return Features, (dict(self),)
 
@@ -1330,7 +1341,7 @@ class Features(dict):
             column_name: decode_nested_example(feature, value)
             if self._column_requires_decoding[column_name]
             else value
-            for column_name, (feature, value) in utils.zip_dict(
+            for column_name, (feature, value) in zip_dict(
                 {key: value for key, value in self.items() if key in example}, example
             )
         }
@@ -1460,7 +1471,16 @@ class Features(dict):
                     del flattened[column_name]
                 elif isinstance(subfeature, Sequence) and isinstance(subfeature.feature, dict):
                     no_change = False
-                    flattened.update({f"{column_name}.{k}": Sequence(v) for k, v in subfeature.feature.items()})
+                    flattened.update(
+                        {
+                            f"{column_name}.{k}": Sequence(v) if not isinstance(v, dict) else [v]
+                            for k, v in subfeature.feature.items()
+                        }
+                    )
+                    del flattened[column_name]
+                elif hasattr(subfeature, "flatten") and subfeature.flatten() != subfeature:
+                    no_change = False
+                    flattened.update({f"{column_name}.{k}": v for k, v in subfeature.flatten().items()})
                     del flattened[column_name]
             self = flattened
             if no_change:
