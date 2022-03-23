@@ -53,7 +53,7 @@ _FILEPATHS = {
     "generics_kb": _URL.format("1UOIEzQTid7SzKx2tbwSSPxl7g-CjpoZa"),
     "generics_kb_simplewiki": _URL.format("1SpN9Qc7XRy5xs4tIfXkcLOEAP2IVaK15"),
     "generics_kb_waterloo": "cskb-waterloo-06-21-with-bert-scores.jsonl",
-    "generics_kb_ours": os.path.join(DATASETS_DIR, "datasets/generics_kb/genericskb-raw.txt") 
+    "generics_kb_ours": os.path.join(DATASETS_DIR, "datasets/generics_kb/genericskb-200k.txt") 
 }
 
 
